@@ -12,11 +12,16 @@ app = FastAPI(title="Algorithm Visualizer API")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://your-project-name.vercel.app"  # Add YOUR Vercel URL here
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 dataset_loader = DatasetLoader()
 model_trainer = MLModelTrainer()
