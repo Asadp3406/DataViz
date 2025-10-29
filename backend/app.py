@@ -15,7 +15,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://your-project-name.vercel.app"  # Add YOUR Vercel URL here
+        "https://data-viz-zeta.vercel.app",
+        "https://*.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
