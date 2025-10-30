@@ -6,7 +6,7 @@ import Header from './components/Header'
 import { fetchAlgorithms, fetchDatasets } from './utils/api'
 
 function App() {
-  const [darkMode, setDarkMode] = useState(false)
+  const [darkMode, setDarkMode] = useState(true)  // Dark mode by default
   const [algorithms, setAlgorithms] = useState([])
   const [datasets, setDatasets] = useState([])
   const [selectedAlgorithm, setSelectedAlgorithm] = useState(null)
@@ -83,7 +83,7 @@ function App() {
 
   return (
     <div className={darkMode ? 'dark' : ''}>
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 transition-colors">
         <Header darkMode={darkMode} setDarkMode={setDarkMode} />
         
         <div className="flex">

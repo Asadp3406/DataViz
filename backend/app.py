@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
@@ -44,10 +44,14 @@ def get_datasets():
     """Get available datasets"""
     return {
         "datasets": [
-            {"id": "moons", "name": "Moons", "type": "classification"},
-            {"id": "circles", "name": "Circles", "type": "classification"},
-            {"id": "iris", "name": "Iris", "type": "classification"},
-            {"id": "linear", "name": "Linear", "type": "regression"}
+            {"id": "moons", "name": "Moons", "type": "classification", "samples": 300},
+            {"id": "circles", "name": "Circles", "type": "classification", "samples": 300},
+            {"id": "iris", "name": "Iris", "type": "classification", "samples": 150},
+            {"id": "wine", "name": "Wine Quality", "type": "classification", "samples": 178},
+            {"id": "breast_cancer", "name": "Breast Cancer", "type": "classification", "samples": 569},
+            {"id": "blobs", "name": "Blobs", "type": "classification", "samples": 300},
+            {"id": "classification", "name": "Random Classification", "type": "classification", "samples": 300},
+            {"id": "linear", "name": "Linear Regression", "type": "regression", "samples": 300}
         ]
     }
 
@@ -122,6 +126,48 @@ def get_algorithms():
                 ]
             },
             {
+                "id": "gradient_boosting",
+                "name": "Gradient Boosting",
+                "type": "classification",
+                "parameters": [
+                    {"name": "n_estimators", "type": "slider", "min": 10, "max": 300, "default": 100, "step": 10},
+                    {"name": "learning_rate", "type": "slider", "min": 0.01, "max": 1.0, "default": 0.1, "step": 0.01},
+                    {"name": "max_depth", "type": "slider", "min": 1, "max": 10, "default": 3, "step": 1},
+                    {"name": "min_samples_split", "type": "slider", "min": 2, "max": 20, "default": 2, "step": 1},
+                    {"name": "subsample", "type": "slider", "min": 0.5, "max": 1.0, "default": 1.0, "step": 0.1}
+                ]
+            },
+            {
+                "id": "adaboost",
+                "name": "AdaBoost",
+                "type": "classification",
+                "parameters": [
+                    {"name": "n_estimators", "type": "slider", "min": 10, "max": 200, "default": 50, "step": 10},
+                    {"name": "learning_rate", "type": "slider", "min": 0.01, "max": 2.0, "default": 1.0, "step": 0.1}
+                ]
+            },
+            {
+                "id": "extra_trees",
+                "name": "Extra Trees",
+                "type": "classification",
+                "parameters": [
+                    {"name": "n_estimators", "type": "slider", "min": 10, "max": 300, "default": 100, "step": 10},
+                    {"name": "max_depth", "type": "slider", "min": 1, "max": 30, "default": 10, "step": 1},
+                    {"name": "min_samples_split", "type": "slider", "min": 2, "max": 20, "default": 2, "step": 1},
+                    {"name": "min_samples_leaf", "type": "slider", "min": 1, "max": 10, "default": 1, "step": 1}
+                ]
+            },
+            {
+                "id": "bagging",
+                "name": "Bagging Classifier",
+                "type": "classification",
+                "parameters": [
+                    {"name": "n_estimators", "type": "slider", "min": 10, "max": 200, "default": 10, "step": 10},
+                    {"name": "max_samples", "type": "slider", "min": 0.1, "max": 1.0, "default": 1.0, "step": 0.1},
+                    {"name": "max_features", "type": "slider", "min": 0.1, "max": 1.0, "default": 1.0, "step": 0.1}
+                ]
+            },
+            {
                 "id": "linear_regression",
                 "name": "Linear Regression",
                 "type": "regression",
@@ -132,6 +178,27 @@ def get_algorithms():
             }
         ]
     }
+
+
+@app.post("/upload-dataset")
+async def upload_dataset(file: UploadFile = File(...)):
+    """Upload custom CSV dataset"""
+    try:
+        content = await file.read()
+        content_str = content.decode('utf-8')
+        
+        # Load and validate dataset
+        X, y = dataset_loader.load_custom_dataset(content_str)
+        
+        return {
+            "success": True,
+            "message": "Dataset uploaded successfully",
+            "samples": len(X),
+            "features": X.shape[1],
+            "dataset_id": "custom"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error processing CSV: {str(e)}")
 
 
 @app.post("/train")
@@ -147,6 +214,34 @@ async def train_model(request: TrainRequest):
             X=X,
             y=y,
             parameters=request.parameters
+        )
+        
+        return result
+    
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/train-custom")
+async def train_custom_model(file: UploadFile = File(...), algorithm: str = "", parameters: str = "{}"):
+    """Train model on custom uploaded dataset"""
+    try:
+        import json
+        
+        # Read CSV
+        content = await file.read()
+        content_str = content.decode('utf-8')
+        X, y = dataset_loader.load_custom_dataset(content_str)
+        
+        # Parse parameters
+        params = json.loads(parameters)
+        
+        # Train model
+        result = model_trainer.train(
+            algorithm=algorithm,
+            X=X,
+            y=y,
+            parameters=params
         )
         
         return result
